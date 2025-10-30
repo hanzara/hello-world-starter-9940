@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 
+// Bosom Buddy Nexus POS System
 function App() {
   useEffect(() => {
     // Redirect to pos.html
