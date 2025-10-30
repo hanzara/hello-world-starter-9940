@@ -806,7 +806,7 @@
     <div class="form-group">
         <input type="password" id="password" placeholder="Password" class="form-control">
     </div>
-    <button onclick="login()">Login</button>
+    <button type="button" id="loginBtn" onclick="login()">Login</button>
     <p style="margin-top: 20px; color: #666; font-size: 0.9rem;">
         Note: Use your email address to login
     </p>
@@ -1286,6 +1286,7 @@ function openTab(tabId) {
 async function login() {
     const emailInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
+    const loginBtn = document.getElementById('loginBtn');
 
     const email = emailInput.value.trim();
     const password = passwordInput.value.trim();
@@ -1294,6 +1295,10 @@ async function login() {
         alert('Please enter both email and password');
         return;
     }
+
+    // Disable button and show loading state
+    loginBtn.disabled = true;
+    loginBtn.textContent = 'Logging in...';
 
     try {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -1309,12 +1314,28 @@ async function login() {
 
     } catch (error) {
         console.error('Login error:', error);
-        alert('Invalid credentials or account disabled: ' + error.message);
+        alert('Login failed: ' + error.message);
+        
+        // Re-enable button
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Login';
     }
 }
 
 // ✅ Make it global so <button onclick="login()"> works even in module scripts
 window.login = login;
+
+// Add enter key support for login
+document.addEventListener('DOMContentLoaded', function() {
+    const passwordInput = document.getElementById('password');
+    if (passwordInput) {
+        passwordInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                login();
+            }
+        });
+    }
+});
 
 
 async function logout() {
