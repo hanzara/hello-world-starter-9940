@@ -2,7 +2,6 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.76.1",
     "@vitejs/plugin-react-swc": "^4.2.0",
-    "lovable-tagger": "^1.1.11",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "vite": "^7.1.12"
@@ -10,6 +9,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:dev": "vite build --mode development",
     "preview": "vite preview"
   }
 }
