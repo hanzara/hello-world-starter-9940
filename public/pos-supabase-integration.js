@@ -1114,8 +1114,8 @@ function formatCurrency(amount) {
     return `Ksh.${parseFloat(amount).toFixed(2)}`;
 }
 
-// Initialize shift display on load for workers
-if (userRole === 'worker') {
+// Initialize shift display on load for workers (guard for undefined)
+if (typeof window !== 'undefined' && window.userRole === 'worker') {
     updateShiftDisplay();
     // Update shift timer every minute
     setInterval(updateShiftDisplay, 60000);

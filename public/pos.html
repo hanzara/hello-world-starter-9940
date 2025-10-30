@@ -1214,41 +1214,79 @@ let workerShifts = {};
 let currentDiscount = null;
 let showApprovedSubmissions = false;
 
+// Auth state management
+const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    if (session?.user) {
+        // Defer to avoid deadlocks
+        setTimeout(() => loadUserData(session.user), 0);
+    } else {
+        showLoginPage();
+    }
+});
+
 // Check for existing session on load
 async function initializeApp() {
     const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
+    if (session?.user) {
         await loadUserData(session.user);
+    } else {
+        showLoginPage();
     }
 }
 
 // Load user data and role
 async function loadUserData(user) {
-    currentUser = user;
-    
-    // Get user profile
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-    
-    currentUserProfile = profile;
-    
-    // Get user role
-    const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .single();
-    
-    userRole = roleData?.role;
-    
-    if (userRole === 'admin') {
-        await showAdminDashboard();
-    } else if (userRole === 'worker') {
-        await showWorkerDashboard();
+    try {
+        currentUser = user;
+
+        // Get user profile
+        const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+
+        if (profileError) {
+            console.error('Profile fetch error:', profileError);
+        }
+        currentUserProfile = profile || null;
+
+        // Get user role
+        const { data: roleData, error: roleError } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', user.id)
+            .single();
+
+        if (roleError || !roleData?.role) {
+            console.error('Role fetch error:', roleError);
+            alert('Your account is missing a role. Please contact the administrator.');
+            showLoginPage();
+            return;
+        }
+
+        userRole = roleData.role;
+
+        if (userRole === 'admin') {
+            await showAdminDashboard();
+        } else if (userRole === 'worker') {
+            await showWorkerDashboard();
+        } else {
+            alert('Unknown role. Please contact the administrator.');
+            showLoginPage();
+        }
+    } catch (err) {
+        console.error('loadUserData error:', err);
+        alert('Failed to load your account data. Please try again.');
+        showLoginPage();
     }
+}
+
+// Helper to show login page
+function showLoginPage() {
+    document.getElementById('loginPage').classList.remove('hidden');
+    document.getElementById('adminDashboard').classList.add('hidden');
+    document.getElementById('workerDashboard').classList.add('hidden');
 }
 
 // Initialize on page load
