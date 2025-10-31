@@ -1259,13 +1259,11 @@ async function loadUserData(user) {
             .single();
 
         if (roleError || !roleData?.role) {
-            console.error('Role fetch error:', roleError);
-            alert('Your account is missing a role. Please contact the administrator.');
-            showLoginPage();
-            return;
+            console.warn('No role found; defaulting to worker view.', roleError);
+            userRole = 'worker';
+        } else {
+            userRole = roleData.role;
         }
-
-        userRole = roleData.role;
 
         if (userRole === 'admin') {
             await showAdminDashboard();
