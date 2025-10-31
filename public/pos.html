@@ -1196,10 +1196,25 @@
 <div id="receipt" class="hidden"></div>
 
 <script>
-// Initialize Supabase
+// Initialize Supabase globally
 const SUPABASE_URL = 'https://yeqfmfgzqzvadhuoqxsl.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllcWZtZmd6cXp2YWRodW9xeHNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2NTM2ODEsImV4cCI6MjA3NzIyOTY4MX0.bYlOUbII9J0Tw8GvOcKIsP5IrNkYitpHFyjlt-ESzIY';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Make supabase globally accessible
+let supabase;
+
+// Initialize Supabase client when library is ready
+function initSupabase() {
+    if (window.supabase && window.supabase.createClient) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // Make it globally accessible for pos-supabase-integration.js and inline scripts
+        window.supabase = supabase;
+        console.log('✓ Supabase client initialized');
+        return true;
+    }
+    console.error('✗ Supabase library not available');
+    return false;
+}
 
 // Data storage and initialization
 let currentUser = null;
@@ -1217,21 +1232,53 @@ let currentDiscount = null;
 let showApprovedSubmissions = false;
 
 // Auth state management
-const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-    if (session?.user) {
-        // Defer to avoid deadlocks
-        setTimeout(() => loadUserData(session.user), 0);
-    } else {
-        showLoginPage();
-    }
-});
+let authSubscription = null;
+
+function setupAuthListener() {
+    authSubscription = supabase.auth.onAuthStateChange((event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
+        if (event === 'SIGNED_IN' && session?.user) {
+            setTimeout(() => loadUserData(session.user), 0);
+        } else if (event === 'SIGNED_OUT') {
+            showLoginPage();
+        }
+    });
+}
 
 // Check for existing session on load
 async function initializeApp() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-        await loadUserData(session.user);
-    } else {
+    console.log('Initializing app...');
+    
+    // Ensure Supabase is initialized
+    if (!supabase) {
+        if (!initSupabase()) {
+            console.error('Supabase library not loaded');
+            alert('Failed to initialize. Please refresh the page.');
+            return;
+        }
+    }
+    
+    // Setup auth listener
+    setupAuthListener();
+    
+    // Check for existing session
+    try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+            console.error('Session check error:', error);
+            showLoginPage();
+            return;
+        }
+        
+        if (session?.user) {
+            console.log('Existing session found:', session.user.email);
+            await loadUserData(session.user);
+        } else {
+            console.log('No existing session');
+            showLoginPage();
+        }
+    } catch (err) {
+        console.error('Init error:', err);
         showLoginPage();
     }
 }
@@ -1294,8 +1341,13 @@ function showLoginPage() {
     if (btn) { btn.disabled = false; btn.textContent = 'Login'; }
 }
 
-// Initialize on page load
-initializeApp();
+// Initialize when DOM and libraries are ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+    // DOM already loaded
+    initializeApp();
+}
 
 // Tab navigation function
 function openTab(tabId) {
@@ -1327,48 +1379,78 @@ function openTab(tabId) {
 
 // ✅ Login function (matches your HTML)
 async function login() {
+    console.log('Login function called');
+    
+    // Ensure supabase is initialized
+    if (!supabase) {
+        if (!initSupabase()) {
+            alert('System not ready. Please refresh the page.');
+            return;
+        }
+    }
+    
     const emailInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
     const loginBtn = document.getElementById('loginBtn');
+    const msg = document.getElementById('authError');
 
-    const email = emailInput.value.trim();
-    const password = passwordInput.value.trim();
+    const email = emailInput?.value?.trim() || '';
+    const password = passwordInput?.value?.trim() || '';
 
     if (!email || !password) {
-        alert('Please enter both email and password');
+        if (msg) {
+            msg.style.display = 'block';
+            msg.textContent = 'Please enter both email and password';
+        } else {
+            alert('Please enter both email and password');
+        }
         return;
     }
 
     // Disable button and show loading state
-    loginBtn.disabled = true;
-    loginBtn.textContent = 'Logging in...';
+    if (loginBtn) {
+        loginBtn.disabled = true;
+        loginBtn.textContent = 'Logging in...';
+    }
+    if (msg) {
+        msg.style.display = 'none';
+    }
 
     try {
+        console.log('Attempting login for:', email);
+        
         const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password
         });
 
-        if (error) throw error;
+        if (error) {
+            console.error('Login error:', error);
+            throw error;
+        }
 
+        console.log('Login successful:', data.user.email);
+        
+        // The auth state change listener will handle loading user data
+        // But we can also call it directly for immediate feedback
         await loadUserData(data.user);
-        console.log('Login successful:', data.user);
 
     } catch (error) {
-        console.error('Login error:', error);
-        const msg = document.getElementById('authError');
+        console.error('Login failed:', error);
         if (msg) {
             msg.style.display = 'block';
             msg.textContent = (error?.message === 'Invalid login credentials')
                 ? 'Invalid email or password. If you just signed up, confirm your email first.'
                 : (error?.message || 'Login failed. Please try again.');
         } else {
-            alert('Login failed: ' + error.message);
+            alert('Login failed: ' + (error?.message || 'Unknown error'));
         }
     } finally {
-        // Re-enable button regardless of outcome
-        loginBtn.disabled = false;
-        loginBtn.textContent = 'Login';
+        // Re-enable button
+        if (loginBtn) {
+            loginBtn.disabled = false;
+            loginBtn.textContent = 'Login';
+        }
     }
 }
 
@@ -1377,31 +1459,70 @@ window.login = login;
 
 // Magic link sign-in
 async function sendMagicLink() {
+    console.log('Magic link function called');
+    
+    // Ensure supabase is initialized
+    if (!supabase) {
+        if (!initSupabase()) {
+            alert('System not ready. Please refresh the page.');
+            return;
+        }
+    }
+    
     const emailInput = document.getElementById('username');
     const magicBtn = document.getElementById('magicLinkBtn');
     const msg = document.getElementById('authError');
     const email = (emailInput?.value || '').trim();
+    
     if (!email) {
-        if (msg) { msg.style.display = 'block'; msg.textContent = 'Enter your email first.'; }
+        if (msg) { 
+            msg.style.display = 'block'; 
+            msg.style.color = '#e74c3c';
+            msg.textContent = 'Enter your email first.'; 
+        } else {
+            alert('Enter your email first.');
+        }
         return;
     }
-    magicBtn.disabled = true;
-    magicBtn.textContent = 'Sending...';
+    
+    if (magicBtn) {
+        magicBtn.disabled = true;
+        magicBtn.textContent = 'Sending...';
+    }
+    
     try {
         const redirectUrl = `${window.location.origin}/pos.html`;
+        console.log('Sending magic link to:', email);
+        
         const { error } = await supabase.auth.signInWithOtp({
             email,
             options: { emailRedirectTo: redirectUrl }
         });
+        
         if (error) throw error;
-        if (msg) { msg.style.display = 'block'; msg.style.color = '#27ae60'; msg.textContent = 'Magic link sent! Check your email.'; }
+        
+        console.log('Magic link sent successfully');
+        if (msg) { 
+            msg.style.display = 'block'; 
+            msg.style.color = '#27ae60'; 
+            msg.textContent = 'Magic link sent! Check your email.'; 
+        } else {
+            alert('Magic link sent! Check your email.');
+        }
     } catch (error) {
         console.error('Magic link error:', error);
-        if (msg) { msg.style.display = 'block'; msg.style.color = '#e74c3c'; msg.textContent = error?.message || 'Failed to send magic link.'; }
+        if (msg) { 
+            msg.style.display = 'block'; 
+            msg.style.color = '#e74c3c'; 
+            msg.textContent = error?.message || 'Failed to send magic link.'; 
+        } else {
+            alert('Failed to send magic link: ' + (error?.message || 'Unknown error'));
+        }
     } finally {
-        magicBtn.disabled = false;
-        magicBtn.textContent = 'Send magic link to email';
-        if (msg) { msg.style.color = '#e74c3c'; }
+        if (magicBtn) {
+            magicBtn.disabled = false;
+            magicBtn.textContent = 'Send magic link to email';
+        }
     }
 }
 window.sendMagicLink = sendMagicLink;
