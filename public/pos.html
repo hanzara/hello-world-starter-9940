@@ -806,9 +806,11 @@
     <div class="form-group">
         <input type="password" id="password" placeholder="Password" class="form-control">
     </div>
+    <div id="authError" style="display:none;color:#e74c3c;margin-top:10px;font-size:0.95rem;"></div>
     <button type="button" id="loginBtn" onclick="login()">Login</button>
-    <p style="margin-top: 20px; color: #666; font-size: 0.9rem;">
-        Note: Use your email address to login
+    <button type="button" id="magicLinkBtn" class="info-btn" onclick="sendMagicLink()" style="width:100%;margin-top:10px;">Send magic link to email</button>
+    <p style="margin-top: 12px; color: #666; font-size: 0.9rem;">
+        Tip: If password login fails or email isn’t confirmed, try the magic link.
     </p>
 </div>
 
@@ -1282,9 +1284,14 @@ async function loadUserData(user) {
 
 // Helper to show login page
 function showLoginPage() {
-    document.getElementById('loginPage').classList.remove('hidden');
+    const loginEl = document.getElementById('loginPage');
+    loginEl.classList.remove('hidden');
     document.getElementById('adminDashboard').classList.add('hidden');
     document.getElementById('workerDashboard').classList.add('hidden');
+    const msg = document.getElementById('authError');
+    if (msg) { msg.style.display = 'none'; msg.textContent = ''; }
+    const btn = document.getElementById('loginBtn');
+    if (btn) { btn.disabled = false; btn.textContent = 'Login'; }
 }
 
 // Initialize on page load
@@ -1344,15 +1351,22 @@ async function login() {
 
         if (error) throw error;
 
-        // ✅ If successful, load user data or proceed to the next page
         await loadUserData(data.user);
         console.log('Login successful:', data.user);
 
     } catch (error) {
         console.error('Login error:', error);
-        alert('Login failed: ' + error.message);
-        
-        // Re-enable button
+        const msg = document.getElementById('authError');
+        if (msg) {
+            msg.style.display = 'block';
+            msg.textContent = (error?.message === 'Invalid login credentials')
+                ? 'Invalid email or password. If you just signed up, confirm your email first.'
+                : (error?.message || 'Login failed. Please try again.');
+        } else {
+            alert('Login failed: ' + error.message);
+        }
+    } finally {
+        // Re-enable button regardless of outcome
         loginBtn.disabled = false;
         loginBtn.textContent = 'Login';
     }
@@ -1360,6 +1374,37 @@ async function login() {
 
 // ✅ Make it global so <button onclick="login()"> works even in module scripts
 window.login = login;
+
+// Magic link sign-in
+async function sendMagicLink() {
+    const emailInput = document.getElementById('username');
+    const magicBtn = document.getElementById('magicLinkBtn');
+    const msg = document.getElementById('authError');
+    const email = (emailInput?.value || '').trim();
+    if (!email) {
+        if (msg) { msg.style.display = 'block'; msg.textContent = 'Enter your email first.'; }
+        return;
+    }
+    magicBtn.disabled = true;
+    magicBtn.textContent = 'Sending...';
+    try {
+        const redirectUrl = `${window.location.origin}/pos.html`;
+        const { error } = await supabase.auth.signInWithOtp({
+            email,
+            options: { emailRedirectTo: redirectUrl }
+        });
+        if (error) throw error;
+        if (msg) { msg.style.display = 'block'; msg.style.color = '#27ae60'; msg.textContent = 'Magic link sent! Check your email.'; }
+    } catch (error) {
+        console.error('Magic link error:', error);
+        if (msg) { msg.style.display = 'block'; msg.style.color = '#e74c3c'; msg.textContent = error?.message || 'Failed to send magic link.'; }
+    } finally {
+        magicBtn.disabled = false;
+        magicBtn.textContent = 'Send magic link to email';
+        if (msg) { msg.style.color = '#e74c3c'; }
+    }
+}
+window.sendMagicLink = sendMagicLink;
 
 // Add enter key support for login
 document.addEventListener('DOMContentLoaded', function() {
