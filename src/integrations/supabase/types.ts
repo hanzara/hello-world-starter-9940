@@ -239,6 +239,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_central_wallets: {
+        Row: {
+          balance: number
+          created_at: string | null
+          id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -257,6 +281,48 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          created_at: string | null
+          description: string | null
+          fee: number | null
+          id: string
+          receiver_id: string | null
+          reference_id: string | null
+          sender_id: string | null
+          status: string
+          type: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          description?: string | null
+          fee?: number | null
+          id?: string
+          receiver_id?: string | null
+          reference_id?: string | null
+          sender_id?: string | null
+          status?: string
+          type?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          description?: string | null
+          fee?: number | null
+          id?: string
+          receiver_id?: string | null
+          reference_id?: string | null
+          sender_id?: string | null
+          status?: string
+          type?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -305,6 +371,15 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      transfer_funds: {
+        Args: {
+          p_amount: number
+          p_fee: number
+          p_receiver_id: string
+          p_sender_id: string
+        }
+        Returns: Json
       }
     }
     Enums: {

@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@supabase/supabase-js": "^2.76.1",
+    "@supabase/supabase-js": "^2.78.0",
     "@vitejs/plugin-react-swc": "^4.2.0",
     "lovable-tagger": "^1.1.11",
     "react": "^19.2.0",
