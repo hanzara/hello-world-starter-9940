@@ -19,6 +19,8 @@ import EvolutionCloud from "./pages/EvolutionCloud";
 import EvolutionMarketplace from "./pages/EvolutionMarketplace";
 import LessonView from "./pages/LessonView";
 import LearningLibrary from "./pages/LearningLibrary";
+import Billing from "./pages/Billing";
+import Security from "./pages/Security";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +46,8 @@ const AppContent = () => {
         <Route path="/software-healing/smartmerge" element={<SmartMerge />} />
         <Route path="/software-healing/cloud" element={<EvolutionCloud />} />
         <Route path="/software-healing/marketplace" element={<EvolutionMarketplace />} />
+        <Route path="/software-healing/billing" element={<Billing />} />
+        <Route path="/software-healing/security" element={<Security />} />
         <Route path="/lesson/:id" element={<LessonView />} />
         <Route path="/learning-library" element={<LearningLibrary />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

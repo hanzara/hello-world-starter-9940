@@ -34,11 +34,8 @@ const menuItems = [
   { title: "SmartMerge 🤖", url: "/software-healing/smartmerge", icon: GitMerge },
   { title: "Evolution Cloud ☁️", url: "/software-healing/cloud", icon: Activity },
   { title: "🧬 Evolution Marketplace", url: "/software-healing/marketplace", icon: CreditCard },
-  { title: "Monitoring", url: "/software-healing/monitoring", icon: Activity },
-  { title: "Code Analysis", url: "/software-healing/analysis", icon: FileCode },
-  { title: "Security", url: "/software-healing/security", icon: Shield },
-  { title: "Performance", url: "/software-healing/performance", icon: Zap },
-  { title: "Pricing", url: "/software-healing/pricing", icon: CreditCard },
+  { title: "💳 Billing & Monetization", url: "/software-healing/billing", icon: CreditCard },
+  { title: "🛡️ Security & Trust", url: "/software-healing/security", icon: Shield },
   { title: "Settings", url: "/software-healing/settings", icon: Settings },
 ];
 
